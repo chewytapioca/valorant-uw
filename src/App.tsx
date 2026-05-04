@@ -1,240 +1,447 @@
-import { useState, useCallback, useMemo } from 'react';
-import { Window } from './components/Window';
-import { DesktopIcon } from './components/DesktopIcon';
-import { Taskbar } from './components/Taskbar';
+import { useState, useEffect, useRef } from 'react';
 import './App.css';
 
-type WindowId = 'welcome' | 'about' | 'team' | 'contact' | 'events';
-
-interface WindowState {
-  isOpen: boolean;
-  zIndex: number;
-}
-
-const WINDOWS_CONFIG: Record<
-  WindowId,
-  { title: string; icon: string; defaultPosition: { x: number; y: number }; width: number }
-> = {
-  welcome: { title: 'Welcome!', icon: '✨', defaultPosition: { x: 160, y: 55 }, width: 440 },
-  about:   { title: 'About Us', icon: '🎮', defaultPosition: { x: 200, y: 75 }, width: 440 },
-  team:    { title: 'Our Team', icon: '👾', defaultPosition: { x: 220, y: 65 }, width: 460 },
-  events:  { title: 'Events',   icon: '🏆', defaultPosition: { x: 240, y: 85 }, width: 440 },
-  contact: { title: 'Contact',  icon: '📬', defaultPosition: { x: 260, y: 70 }, width: 420 },
-};
-
-interface SocialButtonProps {
-  href: string;
-  bg: string;
-  color: string;
-  emoji: string;
-  label: string;
-  description: string;
-}
-
-function SocialButton({ href, bg, color, emoji, label, description }: SocialButtonProps) {
-  const [ripples, setRipples] = useState<{ id: number; x: number; y: number }[]>([]);
-
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const id = Date.now();
-    setRipples((r) => [...r, { id, x: e.clientX - rect.left, y: e.clientY - rect.top }]);
-    setTimeout(() => setRipples((r) => r.filter((rip) => rip.id !== id)), 650);
-  };
-
+function DiscordIcon() {
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="social-btn"
-      style={{ background: bg, color } as React.CSSProperties}
-      onClick={handleClick}
-    >
-      <span className="social-btn-emoji">{emoji}</span>
-      <span className="social-btn-text">
-        <span className="social-btn-label">{label}</span>
-        <span className="social-btn-desc">{description}</span>
-      </span>
-      <span className="social-btn-arrow">→</span>
-      {ripples.map((r) => (
-        <span key={r.id} className="ripple" style={{ left: r.x, top: r.y }} />
-      ))}
-    </a>
+    <svg viewBox="0 0 127.14 96.36" className="social-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <path fill="currentColor" d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z" />
+    </svg>
   );
 }
 
-function BunnyMascot() {
+function InstagramIcon() {
   return (
-    <div className="mascot" aria-hidden="true">
-      <svg viewBox="0 0 120 165" xmlns="http://www.w3.org/2000/svg" className="mascot-svg">
-        <ellipse cx="42" cy="32" rx="11" ry="26" fill="white" stroke="#4b2e83" strokeWidth="2.5" />
-        <ellipse cx="42" cy="32" rx="5.5" ry="20" fill="#e8d48b" opacity="0.65" />
-        <ellipse cx="78" cy="32" rx="11" ry="26" fill="white" stroke="#4b2e83" strokeWidth="2.5" />
-        <ellipse cx="78" cy="32" rx="5.5" ry="20" fill="#e8d48b" opacity="0.65" />
-        <circle cx="60" cy="72" r="34" fill="white" stroke="#4b2e83" strokeWidth="2.5" />
-        <circle cx="48" cy="67" r="5" fill="#4b2e83" />
-        <circle cx="72" cy="67" r="5" fill="#4b2e83" />
-        <circle cx="50" cy="65" r="1.8" fill="white" />
-        <circle cx="74" cy="65" r="1.8" fill="white" />
-        <ellipse cx="43" cy="77" rx="7.5" ry="5" fill="#e8d48b" opacity="0.5" />
-        <ellipse cx="77" cy="77" rx="7.5" ry="5" fill="#e8d48b" opacity="0.5" />
-        <ellipse cx="60" cy="76" rx="3" ry="2" fill="#b7a57a" />
-        <path d="M 53 81 Q 60 87 67 81" stroke="#4b2e83" strokeWidth="1.8" fill="none" strokeLinecap="round" />
-        <ellipse cx="60" cy="136" rx="30" ry="27" fill="white" stroke="#4b2e83" strokeWidth="2.5" />
-        <text x="60" y="142" textAnchor="middle" fill="#4b2e83" fontSize="22" fontWeight="900" fontFamily="Arial, sans-serif">V</text>
-        <ellipse cx="24" cy="122" rx="12" ry="7" fill="white" stroke="#4b2e83" strokeWidth="2" transform="rotate(-35 24 122)" />
-        <ellipse cx="96" cy="122" rx="12" ry="7" fill="white" stroke="#4b2e83" strokeWidth="2" transform="rotate(35 96 122)" />
-      </svg>
-    </div>
+    <svg viewBox="0 0 24 24" className="social-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <path fill="currentColor" d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+    </svg>
   );
 }
 
-const STARS = Array.from({ length: 28 }, (_, i) => {
-  const seed = i * 137.508;
-  return {
-    id: i,
-    x: ((seed * 1.618) % 97) + 1.5,
-    y: ((seed * 2.618) % 90) + 2,
-    size: (i % 3) * 0.5 + 0.6,
-    delay: (i % 5) * 0.6,
-    symbol: ['✦', '✧', '★', '⋆', '·', '✦'][i % 6],
-  };
-});
+function LinkedInIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="social-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <path fill="currentColor" d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+    </svg>
+  );
+}
+
+function EmailIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="social-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <path fill="currentColor" d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+    </svg>
+  );
+}
+
+const SPARKLES = [
+  { id: 1, x: 8,  y: 18, size: 1.1, delay: 0,   symbol: '✦' },
+  { id: 2, x: 88, y: 12, size: 0.8, delay: 0.7, symbol: '✧' },
+  { id: 3, x: 75, y: 72, size: 1.3, delay: 1.4, symbol: '★' },
+  { id: 4, x: 15, y: 65, size: 0.7, delay: 0.3, symbol: '✦' },
+  { id: 5, x: 92, y: 45, size: 0.9, delay: 2.1, symbol: '⋆' },
+  { id: 6, x: 50, y: 8,  size: 0.6, delay: 1.0, symbol: '✧' },
+  { id: 7, x: 30, y: 85, size: 1.0, delay: 1.8, symbol: '✦' },
+  { id: 8, x: 65, y: 25, size: 0.7, delay: 0.5, symbol: '⋆' },
+];
+
+const RANKS = ['Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Ascendant', 'Immortal', 'Radiant', 'Unranked / Just for fun'];
+
+function useCounter(target: number, duration: number, active: boolean) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    let startTime: number | null = null;
+    const step = (ts: number) => {
+      if (!startTime) startTime = ts;
+      const progress = Math.min((ts - startTime) / duration, 1);
+      setCount(Math.floor(progress * target));
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, [active, target, duration]);
+  return count;
+}
+
+function useInView(threshold = 0.35) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) { setInView(true); obs.disconnect(); }
+    }, { threshold });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [threshold]);
+  return { ref, inView };
+}
 
 export default function App() {
-  const [windows, setWindows] = useState<Record<WindowId, WindowState>>({
-    welcome: { isOpen: true, zIndex: 10 },
-    about:   { isOpen: false, zIndex: 0 },
-    team:    { isOpen: false, zIndex: 0 },
-    events:  { isOpen: false, zIndex: 0 },
-    contact: { isOpen: false, zIndex: 0 },
-  });
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState('');
+  const [formData, setFormData] = useState({ name: '', email: '', rank: '', message: '' });
+  const [formStatus, setFormStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
 
-  const openWindow = useCallback((id: WindowId) => {
-    setWindows((w) => {
-      const maxZ = Math.max(...Object.values(w).map((v) => v.zIndex)) + 1;
-      return { ...w, [id]: { isOpen: true, zIndex: maxZ } };
-    });
+  const { ref: statsRef, inView: statsInView } = useInView(0.4);
+  const members  = useCounter(50,  1500, statsInView);
+  const events   = useCounter(30,  1600, statsInView);
+  const seasons  = useCounter(4,   1200, statsInView);
+
+  // Highlight the active nav link as user scrolls
+  useEffect(() => {
+    const ids = ['about', 'events', 'team', 'join', 'connect'];
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) setActiveSection(e.target.id); });
+    }, { rootMargin: '-40% 0px -55% 0px' });
+    ids.forEach(id => { const el = document.getElementById(id); if (el) obs.observe(el); });
+    return () => obs.disconnect();
   }, []);
 
-  const closeWindow = useCallback((id: WindowId) => {
-    setWindows((w) => ({ ...w, [id]: { ...w[id], isOpen: false } }));
-  }, []);
+  // Close mobile menu when a nav link is clicked
+  const handleNavClick = () => setMenuOpen(false);
 
-  const focusWindow = useCallback((id: WindowId) => {
-    setWindows((w) => {
-      const maxZ = Math.max(...Object.values(w).map((v) => v.zIndex)) + 1;
-      return { ...w, [id]: { ...w[id], zIndex: maxZ } };
-    });
-  }, []);
-
-  const taskbarItems = useMemo(
-    () =>
-      (Object.keys(WINDOWS_CONFIG) as WindowId[]).map((id) => ({
-        id,
-        title: WINDOWS_CONFIG[id].title,
-        icon: WINDOWS_CONFIG[id].icon,
-        isOpen: windows[id].isOpen,
-      })),
-    [windows]
-  );
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setFormStatus('sending');
+    try {
+      const res = await fetch('https://formspree.io/f/valorant@uw.edu', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      setFormStatus(res.ok ? 'sent' : 'error');
+      if (res.ok) setFormData({ name: '', email: '', rank: '', message: '' });
+    } catch {
+      setFormStatus('error');
+    }
+  }
 
   return (
-    <div className="desktop">
-      <div className="desktop-bg" aria-hidden="true">
-        {STARS.map((s) => (
-          <span key={s.id} className="star"
-            style={{ left: `${s.x}%`, top: `${s.y}%`, fontSize: `${s.size}em`, animationDelay: `${s.delay}s` }}>
-            {s.symbol}
-          </span>
+    <div className="page">
+
+      {/* ── NAVBAR ── */}
+      <nav className="navbar">
+        <div className="nav-brand">
+          <span className="nav-v">V</span>
+          <span className="nav-title">VALORANT @ UW</span>
+        </div>
+
+        {/* Desktop links */}
+        <ul className="nav-links">
+          {['about', 'events', 'team', 'join', 'connect'].map(id => (
+            <li key={id}>
+              <a href={`#${id}`} className={activeSection === id ? 'nav-link--active' : ''}>
+                {id.charAt(0).toUpperCase() + id.slice(1)}
+              </a>
+            </li>
+          ))}
+        </ul>
+
+        <div className="nav-socials">
+          <a href="https://discord.gg/wYtfQdAvGc" target="_blank" rel="noopener noreferrer" className="nav-social nav-social--discord" aria-label="Discord"><DiscordIcon /></a>
+          <a href="https://www.instagram.com/valorant_uw/" target="_blank" rel="noopener noreferrer" className="nav-social nav-social--instagram" aria-label="Instagram"><InstagramIcon /></a>
+          <a href="https://linkedin.com/company/valorant-uw" target="_blank" rel="noopener noreferrer" className="nav-social nav-social--linkedin" aria-label="LinkedIn"><LinkedInIcon /></a>
+          <a href="mailto:valorant@uw.edu" className="nav-social nav-social--email" aria-label="Email"><EmailIcon /></a>
+        </div>
+
+        {/* Hamburger */}
+        <button
+          className={`hamburger${menuOpen ? ' hamburger--open' : ''}`}
+          aria-label="Toggle menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen(o => !o)}
+        >
+          <span /><span /><span />
+        </button>
+      </nav>
+
+      {/* Mobile menu drawer */}
+      <div className={`mobile-menu${menuOpen ? ' mobile-menu--open' : ''}`}>
+        {['about', 'events', 'team', 'join', 'connect'].map(id => (
+          <a key={id} href={`#${id}`} className="mobile-menu__link" onClick={handleNavClick}>
+            {id.charAt(0).toUpperCase() + id.slice(1)}
+          </a>
         ))}
       </div>
-      <header className="desktop-header">
-        <span className="desktop-title">VALORANT @ UW</span>
-        <span className="desktop-subtitle">University of Washington</span>
-      </header>
-      <nav className="desktop-icons">
-        {([['about','🎮','About Us'],['team','👾','Our Team'],['events','🏆','Events'],['contact','📬','Contact']] as [WindowId,string,string][]).map(([id,emoji,label]) => (
-          <DesktopIcon key={id} emoji={emoji} label={label} onClick={() => openWindow(id)} isActive={windows[id].isOpen} />
-        ))}
-      </nav>
-      <BunnyMascot />
 
-      <Window title="Welcome!" icon="✨" isOpen={windows.welcome.isOpen} onClose={() => closeWindow('welcome')} onFocus={() => focusWindow('welcome')} zIndex={windows.welcome.zIndex} defaultPosition={{ x: 160, y: 55 }} width={440}>
-        <div className="welcome-content">
-          <div className="welcome-logo"><span className="welcome-v">V</span></div>
-          <h1 className="welcome-title">VALORANT @ UW</h1>
-          <p className="welcome-subtitle">University of Washington's Premier Valorant RSO</p>
-          <p className="welcome-desc">Compete, connect, and level up with the UW gaming community. Whether you're Radiant or just starting out — you belong here. ✦</p>
-          <div className="welcome-actions">
-            <a href="https://discord.gg/wYtfQdAvGc" target="_blank" rel="noopener noreferrer" className="btn btn--primary">Join our Discord ↗</a>
-            <button className="btn btn--secondary" onClick={() => openWindow('about')}>Learn More →</button>
-          </div>
-          <div className="welcome-tags">
-            <span className="tag">🏫 UW RSO</span>
-            <span className="tag">🎮 Valorant</span>
-            <span className="tag">⚔️ Competitive</span>
+      {/* ── HERO ── */}
+      <section className="hero">
+        <div className="hero-deco" aria-hidden="true">
+          <div className="deco-blob deco-blob--1" />
+          <div className="deco-blob deco-blob--2" />
+          <div className="deco-blob deco-blob--3" />
+          {SPARKLES.map(s => (
+            <span
+              key={s.id}
+              className="hero-sparkle"
+              style={{ left: `${s.x}%`, top: `${s.y}%`, fontSize: `${s.size}rem`, animationDelay: `${s.delay}s` }}
+            >
+              {s.symbol}
+            </span>
+          ))}
+        </div>
+        <div className="hero-content">
+          <div className="hero-pill">🏫 UW RSO &nbsp;·&nbsp; 🎮 Valorant &nbsp;·&nbsp; ⚔️ Competitive</div>
+          <h1 className="hero-heading">
+            VALORANT<br />
+            <span className="hero-heading--gradient">@ UW</span>
+          </h1>
+          <p className="hero-sub">
+            University of Washington's Premier Valorant RSO —<br />
+            compete, connect, and level up with the UW gaming community.
+          </p>
+          <div className="hero-actions">
+            <a href="https://discord.gg/wYtfQdAvGc" target="_blank" rel="noopener noreferrer" className="btn btn--primary">
+              <DiscordIcon /> Join Discord
+            </a>
+            <a href="#about" className="btn btn--outline">Learn More ↓</a>
           </div>
         </div>
-      </Window>
+      </section>
 
-      <Window title="About Us" icon="🎮" isOpen={windows.about.isOpen} onClose={() => closeWindow('about')} onFocus={() => focusWindow('about')} zIndex={windows.about.zIndex} defaultPosition={{ x: 200, y: 75 }} width={440}>
-        <div className="about-content">
-          <h2 className="section-title">Who We Are 🎯</h2>
-          <p className="section-text">Valorant @ UW is the University of Washington's official Valorant RSO — bringing together students who share a passion for tactical gameplay and competitive gaming.</p>
-          <div className="about-grid">
-            {[{emoji:'🏆',heading:'Competitive Play',body:'Organized scrimmages, tournaments, and ranked team play for all skill levels.'},{emoji:'👥',heading:'Community',body:'Regular meetups, watch parties, and socials to build lasting friendships.'},{emoji:'📈',heading:'Growth',body:'VOD reviews, coaching sessions, and workshops to elevate your game.'},{emoji:'🌟',heading:'Inclusive',body:'Welcoming players from Iron to Radiant — all ranks, all backgrounds.'}].map(({emoji,heading,body}) => (
-              <div key={heading} className="about-card"><span className="about-card-emoji">{emoji}</span><h3>{heading}</h3><p>{body}</p></div>
-            ))}
+      {/* ── ABOUT ── */}
+      <section id="about" className="section section--purple">
+        <div className="container">
+          <p className="eyebrow">Who We Are</p>
+          <h2 className="section-heading">About Us ✦</h2>
+          <p className="section-sub">
+            Valorant @ UW is the University of Washington's official Valorant RSO — bringing together
+            students who share a passion for tactical gameplay and competitive gaming. Whether you're
+            Radiant or just starting out, you belong here.
+          </p>
+
+          {/* Animated stat counters */}
+          <div ref={statsRef} className="stats-row">
+            <div className="stat-card">
+              <span className="stat-number">{members}+</span>
+              <span className="stat-label">Members</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-number">{events}+</span>
+              <span className="stat-label">Events Hosted</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-number">{seasons}</span>
+              <span className="stat-label">Seasons</span>
+            </div>
           </div>
-          <div className="about-cta"><button className="btn btn--primary" onClick={() => openWindow('contact')}>Get In Touch ✨</button></div>
-        </div>
-      </Window>
 
-      <Window title="Our Team" icon="👾" isOpen={windows.team.isOpen} onClose={() => closeWindow('team')} onFocus={() => focusWindow('team')} zIndex={windows.team.zIndex} defaultPosition={{ x: 220, y: 65 }} width={460}>
-        <div className="team-content">
-          <h2 className="section-title">Meet the Team 👾</h2>
-          <p className="section-text">The people who make Valorant @ UW possible.</p>
-          <div className="team-grid">
-            {[{role:'President',emoji:'👑',desc:'Club leadership & vision'},{role:'VP',emoji:'⭐',desc:'Operations & planning'},{role:'Treasurer',emoji:'💰',desc:'Finance & budgeting'},{role:'Events Lead',emoji:'🎉',desc:'Tournaments & socials'},{role:'Media Lead',emoji:'📸',desc:'Content & outreach'},{role:'Coach',emoji:'🎯',desc:'Strategy & improvement'}].map(({role,emoji,desc}) => (
-              <div key={role} className="team-card"><span className="team-card-emoji">{emoji}</span><p className="team-card-role">{role}</p><p className="team-card-desc">{desc}</p></div>
-            ))}
-          </div>
-          <p className="team-note">✦ Interested in joining leadership? Reach out to us!</p>
-        </div>
-      </Window>
-
-      <Window title="Events" icon="🏆" isOpen={windows.events.isOpen} onClose={() => closeWindow('events')} onFocus={() => focusWindow('events')} zIndex={windows.events.zIndex} defaultPosition={{ x: 240, y: 85 }} width={440}>
-        <div className="events-content">
-          <h2 className="section-title">Events & Tournaments 🏆</h2>
-          <p className="section-text">Stay up to date with everything Valorant @ UW.</p>
-          <div className="events-list">
-            {[{label:'Weekly Scrimmages',when:'Every Wednesday',emoji:'⚔️',status:'ongoing'},{label:'Spring Invitational',when:'May 2025',emoji:'🥇',status:'upcoming'},{label:'New Member Social',when:'Every Quarter',emoji:'🎉',status:'ongoing'},{label:'VOD Review Sessions',when:'Bi-weekly',emoji:'📹',status:'ongoing'}].map(({label,when,emoji,status}) => (
-              <div key={label} className="event-item">
-                <span className="event-emoji">{emoji}</span>
-                <div className="event-info"><p className="event-name">{label}</p><p className="event-when">🗓 {when}</p></div>
-                <span className={`event-badge event-badge--${status}`}>{status==='upcoming'?'⏳ Upcoming':'✅ Active'}</span>
+          <div className="card-grid card-grid--2" style={{ marginTop: '32px' }}>
+            {[
+              { emoji: '🏆', title: 'Competitive Play',  body: 'Organized scrimmages, tournaments, and ranked team play for all skill levels.' },
+              { emoji: '👥', title: 'Community',         body: 'Regular meetups, watch parties, and socials to build lasting friendships.' },
+              { emoji: '📈', title: 'Growth',            body: 'VOD reviews, coaching sessions, and workshops to elevate your game.' },
+              { emoji: '🌟', title: 'Inclusive',         body: 'Welcoming players from Iron to Radiant — all ranks, all backgrounds.' },
+            ].map(({ emoji, title, body }) => (
+              <div key={title} className="card">
+                <span className="card-emoji">{emoji}</span>
+                <h3 className="card-title">{title}</h3>
+                <p className="card-body">{body}</p>
               </div>
             ))}
           </div>
-          <div className="events-cta"><a href="https://discord.gg/wYtfQdAvGc" target="_blank" rel="noopener noreferrer" className="btn btn--primary">Join Discord for Updates ↗</a></div>
         </div>
-      </Window>
+      </section>
 
-      <Window title="Contact" icon="📬" isOpen={windows.contact.isOpen} onClose={() => closeWindow('contact')} onFocus={() => focusWindow('contact')} zIndex={windows.contact.zIndex} defaultPosition={{ x: 260, y: 70 }} width={420}>
-        <div className="contact-content">
-          <h2 className="section-title">Connect With Us 📬</h2>
-          <p className="section-text">Find us on any of these platforms — we'd love to hear from you!</p>
-          <div className="social-links">
-            <SocialButton href="https://discord.gg/wYtfQdAvGc" bg="#5865f2" color="#ffffff" emoji="💬" label="Discord" description="discord.gg/wYtfQdAvGc" />
-            <SocialButton href="https://www.instagram.com/valorant_uw/" bg="linear-gradient(135deg,#833ab4 0%,#e1306c 60%,#fd1d1d 100%)" color="#ffffff" emoji="📸" label="Instagram" description="@valorant_uw" />
-            <SocialButton href="https://linkedin.com/company/valorant-uw" bg="#0a66c2" color="#ffffff" emoji="💼" label="LinkedIn" description="linkedin.com/company/valorant-uw" />
-            <SocialButton href="mailto:valorant@uw.edu" bg="linear-gradient(135deg,#e8d48b 0%,#b7a57a 100%)" color="#2d1b69" emoji="✉️" label="Email" description="valorant@uw.edu" />
+      {/* ── EVENTS ── */}
+      <section id="events" className="section section--gold">
+        <div className="container">
+          <p className="eyebrow">Stay Updated</p>
+          <h2 className="section-heading">Events & Tournaments 🏆</h2>
+          <p className="section-sub">Stay up to date with everything Valorant @ UW.</p>
+          <div className="events-list">
+            {[
+              { emoji: '⚔️', name: 'Weekly Scrimmages',   when: 'Every Wednesday', status: 'ongoing'  },
+              { emoji: '🥇', name: 'Spring Invitational',  when: 'May 2025',        status: 'upcoming' },
+              { emoji: '🎉', name: 'New Member Social',    when: 'Every Quarter',   status: 'ongoing'  },
+              { emoji: '📹', name: 'VOD Review Sessions',  when: 'Bi-weekly',       status: 'ongoing'  },
+            ].map(({ emoji, name, when, status }) => (
+              <div key={name} className="event-row">
+                <span className="event-emoji">{emoji}</span>
+                <div className="event-info">
+                  <p className="event-name">{name}</p>
+                  <p className="event-when">🗓 {when}</p>
+                </div>
+                <span className={`badge badge--${status}`}>
+                  {status === 'upcoming' ? '⏳ Upcoming' : '✅ Active'}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="section-cta">
+            <a href="https://discord.gg/wYtfQdAvGc" target="_blank" rel="noopener noreferrer" className="btn btn--primary">
+              Join Discord for Updates ↗
+            </a>
           </div>
         </div>
-      </Window>
+      </section>
 
-      <Taskbar items={taskbarItems} onItemClick={(id) => openWindow(id as WindowId)} />
+      {/* ── TEAM ── */}
+      <section id="team" className="section section--purple">
+        <div className="container">
+          <p className="eyebrow">The People Behind It</p>
+          <h2 className="section-heading">Meet the Team 👾</h2>
+          <p className="section-sub">The people who make Valorant @ UW possible.</p>
+          <div className="card-grid card-grid--3">
+            {[
+              { emoji: '👑', role: 'President',   desc: 'Club leadership & vision'  },
+              { emoji: '⭐', role: 'VP',           desc: 'Operations & planning'     },
+              { emoji: '💰', role: 'Treasurer',    desc: 'Finance & budgeting'       },
+              { emoji: '🎉', role: 'Events Lead',  desc: 'Tournaments & socials'     },
+              { emoji: '📸', role: 'Media Lead',   desc: 'Content & outreach'        },
+              { emoji: '🎯', role: 'Coach',        desc: 'Strategy & improvement'    },
+            ].map(({ emoji, role, desc }) => (
+              <div key={role} className="card card--center">
+                <span className="card-emoji">{emoji}</span>
+                <h3 className="card-title">{role}</h3>
+                <p className="card-body">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── JOIN FORM ── */}
+      <section id="join" className="section section--gold">
+        <div className="container container--narrow">
+          <p className="eyebrow">Get Involved</p>
+          <h2 className="section-heading">Join Us ✦</h2>
+          <p className="section-sub">
+            Interested in joining Valorant @ UW? Fill out the form below and we'll reach out!
+          </p>
+
+          {formStatus === 'sent' ? (
+            <div className="form-success">
+              <span className="form-success__icon">🎉</span>
+              <h3>You're on the list!</h3>
+              <p>We'll be in touch soon. See you in the server!</p>
+              <button className="btn btn--outline" onClick={() => setFormStatus('idle')}>
+                Submit another response
+              </button>
+            </div>
+          ) : (
+            <form className="join-form" onSubmit={handleSubmit} noValidate>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="name" className="form-label">Full Name *</label>
+                  <input
+                    id="name"
+                    type="text"
+                    className="form-input"
+                    placeholder="Your name"
+                    required
+                    value={formData.name}
+                    onChange={e => setFormData(d => ({ ...d, name: e.target.value }))}
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="email" className="form-label">UW Email *</label>
+                  <input
+                    id="email"
+                    type="email"
+                    className="form-input"
+                    placeholder="netid@uw.edu"
+                    required
+                    value={formData.email}
+                    onChange={e => setFormData(d => ({ ...d, email: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="form-group">
+                <label htmlFor="rank" className="form-label">Current Rank</label>
+                <select
+                  id="rank"
+                  className="form-input form-select"
+                  value={formData.rank}
+                  onChange={e => setFormData(d => ({ ...d, rank: e.target.value }))}
+                >
+                  <option value="">Select your rank...</option>
+                  {RANKS.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label htmlFor="message" className="form-label">Anything else?</label>
+                <textarea
+                  id="message"
+                  className="form-input form-textarea"
+                  placeholder="Tell us about yourself, what you're looking for, etc."
+                  rows={4}
+                  value={formData.message}
+                  onChange={e => setFormData(d => ({ ...d, message: e.target.value }))}
+                />
+              </div>
+              {formStatus === 'error' && (
+                <p className="form-error">Something went wrong — try emailing us at <a href="mailto:valorant@uw.edu">valorant@uw.edu</a>.</p>
+              )}
+              <button
+                type="submit"
+                className="btn btn--primary btn--full"
+                disabled={formStatus === 'sending'}
+              >
+                {formStatus === 'sending' ? 'Sending...' : 'Submit Interest ✦'}
+              </button>
+            </form>
+          )}
+        </div>
+      </section>
+
+      {/* ── CONNECT ── */}
+      <section id="connect" className="section section--purple">
+        <div className="container">
+          <p className="eyebrow">Find Us Online</p>
+          <h2 className="section-heading">Connect With Us 💌</h2>
+          <p className="section-sub">We'd love to hear from you — find us on any of these platforms.</p>
+          <div className="card-grid card-grid--2">
+            <a href="https://discord.gg/wYtfQdAvGc" target="_blank" rel="noopener noreferrer" className="connect-card connect-card--discord">
+              <DiscordIcon />
+              <div className="connect-card__info">
+                <p className="connect-card__label">Discord</p>
+                <p className="connect-card__desc">discord.gg/wYtfQdAvGc</p>
+              </div>
+              <span className="connect-card__arrow">↗</span>
+            </a>
+            <a href="https://www.instagram.com/valorant_uw/" target="_blank" rel="noopener noreferrer" className="connect-card connect-card--instagram">
+              <InstagramIcon />
+              <div className="connect-card__info">
+                <p className="connect-card__label">Instagram</p>
+                <p className="connect-card__desc">@valorant_uw</p>
+              </div>
+              <span className="connect-card__arrow">↗</span>
+            </a>
+            <a href="https://linkedin.com/company/valorant-uw" target="_blank" rel="noopener noreferrer" className="connect-card connect-card--linkedin">
+              <LinkedInIcon />
+              <div className="connect-card__info">
+                <p className="connect-card__label">LinkedIn</p>
+                <p className="connect-card__desc">linkedin.com/company/valorant-uw</p>
+              </div>
+              <span className="connect-card__arrow">↗</span>
+            </a>
+            <a href="mailto:valorant@uw.edu" className="connect-card connect-card--email">
+              <EmailIcon />
+              <div className="connect-card__info">
+                <p className="connect-card__label">Email</p>
+                <p className="connect-card__desc">valorant@uw.edu</p>
+              </div>
+              <span className="connect-card__arrow">↗</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* ── FOOTER ── */}
+      <footer className="footer">
+        <p className="footer-brand">VALORANT @ UW</p>
+        <p className="footer-sub">University of Washington · Student RSO</p>
+        <div className="footer-socials">
+          <a href="https://discord.gg/wYtfQdAvGc" target="_blank" rel="noopener noreferrer" className="footer-social footer-social--discord" aria-label="Discord"><DiscordIcon /></a>
+          <a href="https://www.instagram.com/valorant_uw/" target="_blank" rel="noopener noreferrer" className="footer-social footer-social--instagram" aria-label="Instagram"><InstagramIcon /></a>
+          <a href="https://linkedin.com/company/valorant-uw" target="_blank" rel="noopener noreferrer" className="footer-social footer-social--linkedin" aria-label="LinkedIn"><LinkedInIcon /></a>
+          <a href="mailto:valorant@uw.edu" className="footer-social footer-social--email" aria-label="Email"><EmailIcon /></a>
+        </div>
+        <p className="footer-copy">© 2025 Valorant @ UW · All rights reserved.</p>
+      </footer>
+
     </div>
   );
 }
