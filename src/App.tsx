@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react';
 import './App.css';
 
 function DiscordIcon() {
@@ -43,7 +44,79 @@ const SPARKLES = [
   { id: 8, x: 65, y: 25, size: 0.7, delay: 0.5, symbol: '⋆' },
 ];
 
+const RANKS = ['Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Ascendant', 'Immortal', 'Radiant', 'Unranked / Just for fun'];
+
+function useCounter(target: number, duration: number, active: boolean) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    let startTime: number | null = null;
+    const step = (ts: number) => {
+      if (!startTime) startTime = ts;
+      const progress = Math.min((ts - startTime) / duration, 1);
+      setCount(Math.floor(progress * target));
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, [active, target, duration]);
+  return count;
+}
+
+function useInView(threshold = 0.35) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) { setInView(true); obs.disconnect(); }
+    }, { threshold });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [threshold]);
+  return { ref, inView };
+}
+
 export default function App() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState('');
+  const [formData, setFormData] = useState({ name: '', email: '', rank: '', message: '' });
+  const [formStatus, setFormStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+
+  const { ref: statsRef, inView: statsInView } = useInView(0.4);
+  const members  = useCounter(50,  1500, statsInView);
+  const events   = useCounter(30,  1600, statsInView);
+  const seasons  = useCounter(4,   1200, statsInView);
+
+  // Highlight the active nav link as user scrolls
+  useEffect(() => {
+    const ids = ['about', 'events', 'team', 'join', 'connect'];
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) setActiveSection(e.target.id); });
+    }, { rootMargin: '-40% 0px -55% 0px' });
+    ids.forEach(id => { const el = document.getElementById(id); if (el) obs.observe(el); });
+    return () => obs.disconnect();
+  }, []);
+
+  // Close mobile menu when a nav link is clicked
+  const handleNavClick = () => setMenuOpen(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setFormStatus('sending');
+    try {
+      const res = await fetch('https://formspree.io/f/valorant@uw.edu', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      setFormStatus(res.ok ? 'sent' : 'error');
+      if (res.ok) setFormData({ name: '', email: '', rank: '', message: '' });
+    } catch {
+      setFormStatus('error');
+    }
+  }
+
   return (
     <div className="page">
 
@@ -53,27 +126,44 @@ export default function App() {
           <span className="nav-v">V</span>
           <span className="nav-title">VALORANT @ UW</span>
         </div>
+
+        {/* Desktop links */}
         <ul className="nav-links">
-          <li><a href="#about">About</a></li>
-          <li><a href="#events">Events</a></li>
-          <li><a href="#team">Team</a></li>
-          <li><a href="#connect">Connect</a></li>
+          {['about', 'events', 'team', 'join', 'connect'].map(id => (
+            <li key={id}>
+              <a href={`#${id}`} className={activeSection === id ? 'nav-link--active' : ''}>
+                {id.charAt(0).toUpperCase() + id.slice(1)}
+              </a>
+            </li>
+          ))}
         </ul>
+
         <div className="nav-socials">
-          <a href="https://discord.gg/wYtfQdAvGc" target="_blank" rel="noopener noreferrer" className="nav-social nav-social--discord" aria-label="Discord">
-            <DiscordIcon />
-          </a>
-          <a href="https://www.instagram.com/valorant_uw/" target="_blank" rel="noopener noreferrer" className="nav-social nav-social--instagram" aria-label="Instagram">
-            <InstagramIcon />
-          </a>
-          <a href="https://linkedin.com/company/valorant-uw" target="_blank" rel="noopener noreferrer" className="nav-social nav-social--linkedin" aria-label="LinkedIn">
-            <LinkedInIcon />
-          </a>
-          <a href="mailto:valorant@uw.edu" className="nav-social nav-social--email" aria-label="Email">
-            <EmailIcon />
-          </a>
+          <a href="https://discord.gg/wYtfQdAvGc" target="_blank" rel="noopener noreferrer" className="nav-social nav-social--discord" aria-label="Discord"><DiscordIcon /></a>
+          <a href="https://www.instagram.com/valorant_uw/" target="_blank" rel="noopener noreferrer" className="nav-social nav-social--instagram" aria-label="Instagram"><InstagramIcon /></a>
+          <a href="https://linkedin.com/company/valorant-uw" target="_blank" rel="noopener noreferrer" className="nav-social nav-social--linkedin" aria-label="LinkedIn"><LinkedInIcon /></a>
+          <a href="mailto:valorant@uw.edu" className="nav-social nav-social--email" aria-label="Email"><EmailIcon /></a>
         </div>
+
+        {/* Hamburger */}
+        <button
+          className={`hamburger${menuOpen ? ' hamburger--open' : ''}`}
+          aria-label="Toggle menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen(o => !o)}
+        >
+          <span /><span /><span />
+        </button>
       </nav>
+
+      {/* Mobile menu drawer */}
+      <div className={`mobile-menu${menuOpen ? ' mobile-menu--open' : ''}`}>
+        {['about', 'events', 'team', 'join', 'connect'].map(id => (
+          <a key={id} href={`#${id}`} className="mobile-menu__link" onClick={handleNavClick}>
+            {id.charAt(0).toUpperCase() + id.slice(1)}
+          </a>
+        ))}
+      </div>
 
       {/* ── HERO ── */}
       <section className="hero">
@@ -120,7 +210,24 @@ export default function App() {
             students who share a passion for tactical gameplay and competitive gaming. Whether you're
             Radiant or just starting out, you belong here.
           </p>
-          <div className="card-grid card-grid--2">
+
+          {/* Animated stat counters */}
+          <div ref={statsRef} className="stats-row">
+            <div className="stat-card">
+              <span className="stat-number">{members}+</span>
+              <span className="stat-label">Members</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-number">{events}+</span>
+              <span className="stat-label">Events Hosted</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-number">{seasons}</span>
+              <span className="stat-label">Seasons</span>
+            </div>
+          </div>
+
+          <div className="card-grid card-grid--2" style={{ marginTop: '32px' }}>
             {[
               { emoji: '🏆', title: 'Competitive Play',  body: 'Organized scrimmages, tournaments, and ranked team play for all skill levels.' },
               { emoji: '👥', title: 'Community',         body: 'Regular meetups, watch parties, and socials to build lasting friendships.' },
@@ -192,12 +299,95 @@ export default function App() {
               </div>
             ))}
           </div>
-          <p className="team-note">✦ Interested in joining leadership? Reach out to us!</p>
+        </div>
+      </section>
+
+      {/* ── JOIN FORM ── */}
+      <section id="join" className="section section--gold">
+        <div className="container container--narrow">
+          <p className="eyebrow">Get Involved</p>
+          <h2 className="section-heading">Join Us ✦</h2>
+          <p className="section-sub">
+            Interested in joining Valorant @ UW? Fill out the form below and we'll reach out!
+          </p>
+
+          {formStatus === 'sent' ? (
+            <div className="form-success">
+              <span className="form-success__icon">🎉</span>
+              <h3>You're on the list!</h3>
+              <p>We'll be in touch soon. See you in the server!</p>
+              <button className="btn btn--outline" onClick={() => setFormStatus('idle')}>
+                Submit another response
+              </button>
+            </div>
+          ) : (
+            <form className="join-form" onSubmit={handleSubmit} noValidate>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="name" className="form-label">Full Name *</label>
+                  <input
+                    id="name"
+                    type="text"
+                    className="form-input"
+                    placeholder="Your name"
+                    required
+                    value={formData.name}
+                    onChange={e => setFormData(d => ({ ...d, name: e.target.value }))}
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="email" className="form-label">UW Email *</label>
+                  <input
+                    id="email"
+                    type="email"
+                    className="form-input"
+                    placeholder="netid@uw.edu"
+                    required
+                    value={formData.email}
+                    onChange={e => setFormData(d => ({ ...d, email: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="form-group">
+                <label htmlFor="rank" className="form-label">Current Rank</label>
+                <select
+                  id="rank"
+                  className="form-input form-select"
+                  value={formData.rank}
+                  onChange={e => setFormData(d => ({ ...d, rank: e.target.value }))}
+                >
+                  <option value="">Select your rank...</option>
+                  {RANKS.map(r => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label htmlFor="message" className="form-label">Anything else?</label>
+                <textarea
+                  id="message"
+                  className="form-input form-textarea"
+                  placeholder="Tell us about yourself, what you're looking for, etc."
+                  rows={4}
+                  value={formData.message}
+                  onChange={e => setFormData(d => ({ ...d, message: e.target.value }))}
+                />
+              </div>
+              {formStatus === 'error' && (
+                <p className="form-error">Something went wrong — try emailing us at <a href="mailto:valorant@uw.edu">valorant@uw.edu</a>.</p>
+              )}
+              <button
+                type="submit"
+                className="btn btn--primary btn--full"
+                disabled={formStatus === 'sending'}
+              >
+                {formStatus === 'sending' ? 'Sending...' : 'Submit Interest ✦'}
+              </button>
+            </form>
+          )}
         </div>
       </section>
 
       {/* ── CONNECT ── */}
-      <section id="connect" className="section section--gold">
+      <section id="connect" className="section section--purple">
         <div className="container">
           <p className="eyebrow">Find Us Online</p>
           <h2 className="section-heading">Connect With Us 💌</h2>
